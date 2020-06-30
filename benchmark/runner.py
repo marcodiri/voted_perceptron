@@ -9,22 +9,43 @@ from votedperceptron import VotedPerceptron, MulticlassClassifier
 import numpy as np
 import pickle
 
+# classes to remove to speed things up
+REMOVE_CLASSES = 6
+# MNIST labels have values from 0 to 9
+POSSIBLE_LABELS = tuple(range(10))
 
-def _get_fraction_of_dataset(mnist_fraction, kind):
-    training_list, labels = mnist_reader.load_mnist(path=DATA_DIR, kind=kind)
 
-    # if mnist_fraction > 1 repeat part of the training_list to simulate epochs (training only)
-    repetitions = np.floor(mnist_fraction)
-    new_input_list = training_list * (repetitions if repetitions else 1)
+def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels):
+    global POSSIBLE_LABELS
+    input_list, labels = mnist_reader.load_mnist(path=DATA_DIR, kind=kind)
 
+    labels_to_remove = list(set(POSSIBLE_LABELS) - set(possible_labels))
+
+    mod_input_list = []
+    mod_labels = []
+    to_remove = [True if (y in labels_to_remove) else False for y in labels]
+    for i, (x, y) in enumerate(zip(input_list, labels)):
+        if not to_remove[i]:
+            mod_input_list.append(x)
+            mod_labels.append(y)
+    mod_input_list = np.array(mod_input_list)
+    mod_labels = np.array(mod_labels)
+    POSSIBLE_LABELS = possible_labels
+
+
+    repetitions = int(np.floor(mnist_fraction))
     fraction = mnist_fraction - repetitions
     # reduce data to fraction
-    new_size = int(round((fraction if fraction else 1) * len(new_input_list)))
+    new_size = int(round((fraction if fraction else 1) * len(mod_input_list)))
     # normalize between 0 and 1
-    new_input_list = new_input_list[:new_size].astype(np.float32) / 255
-    labels = labels[:new_size]
+    mod_input_list = mod_input_list[:new_size].astype(np.float32) / 255
+    mod_labels = mod_labels[:new_size]
 
-    return new_input_list, labels
+    # if mnist_fraction > 1 repeat part of the input_list to simulate epochs (training only)
+    mod_input_list = np.array(list(mod_input_list) * (repetitions if repetitions > 0 else 1))
+    mod_labels = np.array(list(mod_labels) * (repetitions if repetitions > 0 else 1))
+
+    return mod_input_list, mod_labels
 
 
 def train(args):
@@ -32,15 +53,15 @@ def train(args):
     mnist_fraction = args.mnist_fraction
     expansion_degree = args.expansion_degree
 
-    # MNIST labels have values from 0 to 9
-    possible_labels = tuple(range(10))
-
-    # create instance of MulticlassClassifier
-    multicc = MulticlassClassifier(possible_labels, VotedPerceptron, expansion_degree)
-
     # get data and labels for training
     print('Loading MNIST data')
-    training_list, labels = _get_fraction_of_dataset(mnist_fraction, 'train')
+    training_list, labels = _get_fraction_of_dataset(
+        mnist_fraction, 'train',
+        POSSIBLE_LABELS[:(-REMOVE_CLASSES if REMOVE_CLASSES else len(POSSIBLE_LABELS))]
+    )
+
+    # create instance of MulticlassClassifier
+    multicc = MulticlassClassifier(POSSIBLE_LABELS, VotedPerceptron, expansion_degree)
 
     # train instance of MulticlassClassifier
     print('Training')
@@ -61,8 +82,9 @@ def train(args):
 
     # save trained MulticlassClassifier
     print('Saving MulticlassClassifier')
-    save_filepath = save_dir + '/{}fraction_{}degree_{}errors.pk' \
-        .format(mnist_fraction, expansion_degree, tot_errors)
+    save_filepath = save_dir + '/{}{}fraction_{}degree_{}errors.pk' \
+        .format(str(REMOVE_CLASSES)+"removed_" if REMOVE_CLASSES else "",
+                mnist_fraction, expansion_degree, tot_errors)
     with open(save_filepath, 'wb') as multicc_file:
         pickle.dump(multicc, multicc_file)
 
@@ -71,10 +93,7 @@ def train(args):
 
 def test(args):
     mnist_fraction = args.mnist_fraction
-
     score_method = args.score_method
-    test_list, labels = _get_fraction_of_dataset(mnist_fraction, 't10k')
-
     process_count = args.process_count
 
     # open saved training file
@@ -86,6 +105,8 @@ def test(args):
     else:
         print("File not found")
         return
+
+    test_list, labels = _get_fraction_of_dataset(mnist_fraction, 't10k', multicc.possible_labels)
 
     print("Evaluating inputs")
     start = default_timer()
