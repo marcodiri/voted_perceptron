@@ -77,8 +77,10 @@ class MulticlassClassifier:
         for x in input_list:
             eval_class = predict_class(x)
 
-            # if wanting to predict only with last, vote or average method return immediately
-            # return 1, eval_class
+            # if wanting to predict only with last, vote or average method uncomment this
+            # predictions.append(1)
+            # eval_classes.append(eval_class)
+            # continue
 
             eval_binary_classifier = self.binary_classifiers[eval_class]
             s = 0

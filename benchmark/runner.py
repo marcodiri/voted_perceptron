@@ -3,23 +3,20 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))  # needed to run script from console
 import argparse
 from timeit import default_timer
-from configs import DATA_DIR, MODEL_SAVE_DIR, touch_dir
+from configs import *
 from utils import mnist_reader
 from votedperceptron import VotedPerceptron, MulticlassClassifier
 import numpy as np
 import pickle
 
-# classes to remove to speed things up
-REMOVE_CLASSES = 6
-# MNIST labels have values from 0 to 9
-POSSIBLE_LABELS = tuple(range(10))
+LABELS = POSSIBLE_LABELS
 
 
 def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels):
-    global POSSIBLE_LABELS
+    global LABELS
     input_list, labels = mnist_reader.load_mnist(path=DATA_DIR, kind=kind)
 
-    labels_to_remove = list(set(POSSIBLE_LABELS) - set(possible_labels))
+    labels_to_remove = list(set(LABELS) - set(possible_labels))
 
     mod_input_list = []
     mod_labels = []
@@ -30,8 +27,7 @@ def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels):
             mod_labels.append(y)
     mod_input_list = np.array(mod_input_list)
     mod_labels = np.array(mod_labels)
-    POSSIBLE_LABELS = possible_labels
-
+    LABELS = possible_labels
 
     repetitions = int(np.floor(mnist_fraction))
     fraction = mnist_fraction - repetitions
