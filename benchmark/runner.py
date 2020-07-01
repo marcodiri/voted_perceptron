@@ -68,7 +68,7 @@ def train(args):
     # train instance of MulticlassClassifier
     print('Training')
     start = default_timer()
-    multicc.train(training_list, labels, process_count)
+    multicc.train(training_list, labels, epochs, process_count)
     end = default_timer()
     print("Training time: {} sec".format(end - start))
 
@@ -81,14 +81,6 @@ def train(args):
     bc_vector_counts = [(k, len(v.weights))
                         for k, v in multicc.binary_classifiers.items()]
     tot_errors = sum(e for c, e in bc_vector_counts)
-
-    # save trained MulticlassClassifier
-    print('Saving MulticlassClassifier')
-    save_filepath = save_dir + '/{}{}data_{}epochs_{}degree_{}errors.pk' \
-        .format(str(REMOVE_CLASSES)+"removed_" if REMOVE_CLASSES else "",
-                mnist_fraction, epochs, expansion_degree, tot_errors)
-    with open(save_filepath, 'wb') as multicc_file:
-        pickle.dump(multicc, multicc_file)
 
     print("Per class error distribution:")
     print(bc_vector_counts)
