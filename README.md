@@ -1,4 +1,4 @@
-votedperceptron
+Voted Perceptron
 ===
 
 An implementation of the voted perceptron algorithm
@@ -43,6 +43,9 @@ You can train a MulticlassClassifier with the following parameters:
         default to 1
     -exp, --expansion_degree: the degree of the kernel expansion
         default to 1
+
+A training file named after the used parameters will be saved in the folder 
+specified in `config.py` (default to `./save`).
 
 Example to train on 50% of the dataset for 0.1 epochs with an expansion degree of 2,
 with 10 running processes:
