@@ -8,14 +8,13 @@ from utils import mnist_reader
 from votedperceptron import VotedPerceptron, MulticlassClassifier
 import numpy as np
 import pickle
+from datetime import datetime
 
 LABELS = POSSIBLE_LABELS
-
 
 def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels, epochs=1):
     global LABELS
     input_list, labels = mnist_reader.load_mnist(path=DATA_DIR, kind=kind)
-
 
     # take the fraction of the dataset
     fraction = mnist_fraction - int(np.floor(mnist_fraction))
@@ -49,6 +48,8 @@ def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels, epochs=1):
 
 
 def train(args):
+    LOGGER.info("\n")
+    LOGGER.info(datetime.now())
     # get data and labels for training
     print('Loading MNIST data')
     training_list, labels = _get_fraction_of_dataset(
@@ -61,14 +62,18 @@ def train(args):
     multicc = MulticlassClassifier(POSSIBLE_LABELS, VotedPerceptron, args)
 
     # train instance of MulticlassClassifier
+    LOGGER.info("Started training with args {}".format(args))
     print('Training')
     start = default_timer()
     multicc.train(training_list, labels)
     end = default_timer()
     print("Training time: {} sec".format(end - start))
+    LOGGER.info("Total training time: {} sec".format(end - start))
 
 
 def test(args):
+    LOGGER.info("\n")
+    LOGGER.info(datetime.now())
     # open saved training file
     print("Loading training file")
     filepath = args.filepath
@@ -79,13 +84,16 @@ def test(args):
     else:
         print("File not found")
         return
+    LOGGER.info("Loaded file {}".format(filepath))
 
     test_list, labels = _get_fraction_of_dataset(args.mnist_fraction, 't10k', multicc.possible_labels)
 
+    LOGGER.info("Started testing with args {}".format(args))
     print("Evaluating inputs with method '{}'".format(args.score_method))
     start = default_timer()
     predictions, eval_classes = multicc.predict(test_list)
     end = default_timer()
+    LOGGER.info("Evaluated {} inputs in {} sec".format(len(test_list), end-start))
     print("Evaluated {} inputs in {} sec".format(len(test_list), end-start))
 
     # compare evaluated classes with real labels and update correct or mistake based on predictions
@@ -97,6 +105,7 @@ def test(args):
             unknown += 1
         else:
             mistakes += 1
+    LOGGER.info("Correct: {}, Mistakes: {}, Unknown: {}".format(correct, mistakes, unknown))
     print("Correct: {}, Mistakes: {}, Unknown: {}".format(correct, mistakes, unknown))
 
 
@@ -110,41 +119,35 @@ def main():
                         help='Number of worker processes to use.',
                         type=int,
                         default=os.cpu_count())
+    parser.add_argument('-mf', '--mnist_fraction',
+                        help='Fraction of MNIST data to use (range 0 to 1 with pass 0.1)',
+                        type=float,
+                        choices=np.array(range(1, 11000))/10000,
+                        metavar='{0, .0001, ..., .1, ..., 1}',
+                        default=1)
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
     # Create the parser for the train command.
     parser_train = subparsers.add_parser('train',
                                          help='Create and train a MulticlassClassifier')
-    parser_train.add_argument('-mf', '--mnist_fraction',
-                              help='Fraction of MNIST data to use (range 0 to 1 with pass 0.1)',
-                              type=float,
-                              choices=np.arange(0, 1.0001, .0001),
-                              metavar='{0, .0001, ..., .1, ..., 1}',
-                              default=1)
     parser_train.add_argument('-e', '--epochs',
                               help='number of times the training set will be repeated.'
                                    'If a decimal repeat the remaining fraction.',
                               type=float,
-                              choices=np.arange(0, 30.1, .1),
+                              choices=np.array(range(1, 31))/10,
                               metavar='{0, .1, ..., 1, 1.1, ..., 30}',
                               default=1)
     parser_train.add_argument('-exp', '--expansion_degree',
                               help='Degree of the kernel function.',
                               type=int,
-                              choices=np.arange(0, 11),
+                              choices=np.arange(0, 101),
                               default=1)
     parser_train.set_defaults(func=train)
 
     # Create the parser for the test command.
     parser_test = subparsers.add_parser('test',
                                         help='Test trained MulticlassClassifier')
-    parser_test.add_argument('-mf', '--mnist_fraction',
-                             help='Fraction of MNIST data to use (range 0 to 1 with pass 0.1)',
-                             type=float,
-                             choices=np.arange(0, 1.0001, .0001),
-                             metavar='{0, .01, ..., .1, ..., 1}',
-                             default=1)
     parser_test.add_argument('-m', '--score_method',
                              help='Method to calculate classes score.',
                              choices=['last', 'vote', 'avg'],

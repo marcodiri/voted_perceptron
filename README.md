@@ -30,14 +30,15 @@ Command line parameters:
     -p, --process_count [int]: number of concurrent processes to use to 
         train/test on a dataset
         default to os.cpu_count()
+
+    -mf, --mnist_fraction [0 to 1 with pass 0.0001]: fraction of the dataset
+        to train on.
+        default to 1
         
     train, test: wether you are training or testing on the dataset
 
 You can train a MulticlassClassifier with the following parameters:
 
-    -mf, --mnist_fraction [0 to 1 with pass 0.0001]: fraction of the dataset
-        to train on. If greater than on the extra fraction will be repeated.
-        default to 1
     -e, --epochs [1 to 30 with pass 0.1]: number of times the training set will be repeated.
         If a decimal repeat the remaining fraction.
         default to 1
@@ -50,13 +51,10 @@ specified in `config.py` (default to `./save`).
 Example to train on 50% of the dataset for 0.1 epochs with an expansion degree of 2,
 with 10 running processes:
 ~~~
-python benchmark/runner.py -p 10 train -mf .5 -e .1 -exp 2
+python benchmark/runner.py -p 10 -mf .5 train -e .1 -exp 2
 ~~~
 You can test a saved training file with the following parameters:
 
-    -mf, --mnist_fraction [0 to 1 with pass 0.0001]: fraction of the dataset
-        to train on.
-        default to 1
     -m, --score_method ['last', 'vote', 'avg']: the method with which the 
         MulticlassClassifier will assign scores to classes.
         default to 'last'
@@ -65,7 +63,7 @@ You can test a saved training file with the following parameters:
 Example to test a training file on 50% of the dataset with score method average,
 with 10 running processes:
 ~~~
-python benchmark/runner.py -p 10 test -mf .5 -m avg -f "save/fashion/filename.pk"
+python benchmark/runner.py -p 10 -mf .5 test -m avg -f "save/fashion/filename.pk"
 ~~~
 
 Credits

@@ -2,6 +2,7 @@ import numpy as np
 from multiprocessing import Pool
 import pickle
 from configs import *
+from timeit import default_timer
 
 
 class MulticlassClassifier:
@@ -44,7 +45,9 @@ class MulticlassClassifier:
 
         for num, (training_split, labels_split) \
                 in enumerate(zip(examples_splits, labels_splits), start=1):
-            print("Starting epoch {}".format(num/10))
+            start = default_timer()
+            print("Started training on epoch {}".format(num/10))
+            LOGGER.info("Started training on epoch {}".format(num/10))
             if self.args.process_count is not None and self.args.process_count > 1:
                 trained_bc_results = {}
                 with Pool(processes=self.args.process_count) as pool:
@@ -72,11 +75,19 @@ class MulticlassClassifier:
                     normalized_labels = normalize_labels(labels_split, label)
                     binary_classifier.train(training_split, normalized_labels)
                     print("Finished training for class " + str(label))
+            end = default_timer()
 
+            # return number of prediction vectors making up each binary classifier
             bc_vector_counts = [(k, len(v.weights))
                                 for k, v in self.binary_classifiers.items()]
             tot_errors = sum(e for c, e in bc_vector_counts)
 
+            LOGGER.info("Finished training on epoch {}".format(num/10))
+            LOGGER.info("Training time: {} sec".format(end-start))
+            print("Training time: {} sec".format(end-start))
+            LOGGER.info("Per class error distribution:")
+            LOGGER.info("{}".format(bc_vector_counts))
+            LOGGER.info("Total errors: {}".format(tot_errors))
             # save trained MulticlassClassifier
             print('Saving MulticlassClassifier')
             save_filepath = TRAINING_SAVE_DIR+'/{}{}data_{}epochs_{}degree_{}errors.pk'\
@@ -85,11 +96,7 @@ class MulticlassClassifier:
                         self.args.expansion_degree, tot_errors)
             with open(save_filepath, 'wb') as multicc_file:
                 pickle.dump(self, multicc_file)
-
-            # return number of prediction vectors making up each binary classifier
-            bc_vector_counts = [(k, len(v.weights))
-                                for k, v in self.binary_classifiers.items()]
-            tot_errors = sum(e for c, e in bc_vector_counts)
+            LOGGER.info("Created save file in {}".format(save_filepath))
 
             print("Per class error distribution:")
             print(bc_vector_counts)
