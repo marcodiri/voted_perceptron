@@ -135,7 +135,7 @@ def main():
                               help='number of times the training set will be repeated.'
                                    'If a decimal repeat the remaining fraction.',
                               type=float,
-                              choices=np.array(range(1, 31))/10,
+                              choices=np.array(range(10, 301))/10,
                               metavar='{0, .1, ..., 1, 1.1, ..., 30}',
                               default=1)
     parser_train.add_argument('-exp', '--expansion_degree',
