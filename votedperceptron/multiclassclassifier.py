@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 from multiprocessing import Pool
 
@@ -53,10 +55,23 @@ class MulticlassClassifier:
                     print("Finished training for class "+str(label))
         else:
             # train each binary classifier with a single process
-            for label, binary_classifier in self.binary_classifiers.items():
-                normalized_labels = normalize_labels(labels, label)
-                binary_classifier.train(training_list, normalized_labels)
-                print("Finished training for class "+str(label))
+            examples_splits = np.array_split(training_list, 10, axis=0)
+            labels_splits = np.array_split(labels, 10, axis=0)
+            for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits)):
+                for label, binary_classifier in self.binary_classifiers.items():
+                    normalized_labels = normalize_labels(labels_split, label)
+                    binary_classifier.train(training_split, normalized_labels)
+                    print("Finished training for class " + str(label))
+
+                # save trained MulticlassClassifier
+                bc_vector_counts = [(k, len(v.weights))
+                                    for k, v in self.binary_classifiers.items()]
+                tot_errors = sum(e for c, e in bc_vector_counts)
+                print('Saving MulticlassClassifier')
+                save_filepath = '../save/fashion/{}-{}errors.pk' \
+                    .format(num, tot_errors)
+                with open(save_filepath, 'wb') as multicc_file:
+                    pickle.dump(self, multicc_file)
 
     def _predict_list(self, input_list, method):
         def predict_class(x):

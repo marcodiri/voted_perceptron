@@ -10,9 +10,8 @@ class VotedPerceptron:
         self.expansion_degree = expansion_degree  # kernel function degree
 
         # initialize structures that will store the prediction vectors
-        # save the generated vector to later compute predictions in O(k) kernel calculations
-        # with k = len(vector_list) (number of errors)
-        self.vectors_list = []
+        # to later compute predictions in O(k) kernel calculations
+        # with k = len(mistaken_examples) (number of errors during training)
         self.mistaken_examples = []
         self.mistaken_labels = []
 
@@ -31,14 +30,12 @@ class VotedPerceptron:
         # X the vector of variables and b the bias)
         training_list = np.insert(training_list, 0, 1, axis=1)
 
-        weight = 0
         # initialize structures
         if not self.mistaken_examples:
+            self.weight = 0
             init_example = np.zeros(training_list.shape[1], dtype=training_list.dtype)
             self.mistaken_examples.append(init_example)
             self.mistaken_labels.append(1)
-            init_vector = np.multiply(1, init_example)
-            self.vectors_list.append(init_vector)
 
         for x, y_real in zip(training_list, labels):
             # computing the prediction is the slow part.
@@ -52,26 +49,23 @@ class VotedPerceptron:
             y_predicted = copysign(1, prediction)
 
             if y_predicted == y_real:  # correct prediction
-                weight += 1
+                self.weight += 1
             else:  # wrong prediction
                 # save mistaken example and label and weight
                 self.mistaken_examples.append(x.copy())
                 self.mistaken_labels.append(y_real)
-                self.weights.append(weight)
-
-                # update vector (move hyperplane)
-                new_vector = np.add(self.vectors_list[-1], np.multiply(y_real, x))
-                self.vectors_list.append(new_vector.copy())
+                self.weights.append(self.weight)
+                self.weight = 1  # reset weight
 
         # training complete
         # save the last weight
-        self.weights.append(weight)
+        self.weights.append(self.weight)
 
     def get_score(self, x, method):
         # each VotedPerceptron instance represent a label
         # so compute the score
         score = None
-        self.v_per_xs = [np.dot(self.vectors_list[0], x)]
+        self.v_per_xs = [0]
         if method == 'last':
             for me, ml, c in zip(self.mistaken_examples,
                                  self.mistaken_labels,
