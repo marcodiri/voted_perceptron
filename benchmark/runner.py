@@ -112,7 +112,7 @@ def test(args):
 
     test_list, labels = _get_fraction_of_dataset(mnist_fraction, 't10k', multicc.possible_labels)
 
-    print("Evaluating inputs")
+    print("Evaluating inputs with method '{}'".format(score_method))
     start = default_timer()
     predictions, eval_classes = multicc.predict(test_list, score_method, process_count)
     end = default_timer()

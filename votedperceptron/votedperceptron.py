@@ -71,12 +71,25 @@ class VotedPerceptron:
         # each VotedPerceptron instance represent a label
         # so compute the score
         score = None
+        self.v_per_xs = [np.dot(self.vectors_list[0], x)]
         if method == 'last':
-            score = np.dot(self.vectors_list[-1], x)
+            for me, ml, c in zip(self.mistaken_examples,
+                                 self.mistaken_labels,
+                                 self.weights):
+                self.v_per_xs.append(self.v_per_xs[-1] + ml * self.kernel(me, x))
+            score = self.v_per_xs[-1]
         elif method == 'vote':
-            score = sum(c * np.sign(np.dot(v, x))
-                        for v, c in zip(self.vectors_list, self.weights))
+            score = 0
+            for me, ml, c in zip(self.mistaken_examples,
+                                 self.mistaken_labels,
+                                 self.weights):
+                self.v_per_xs.append(self.v_per_xs[-1] + ml * self.kernel(me, x))
+                score += c * np.sign(self.v_per_xs[-1])
         elif method == 'avg':
-            score = sum(c * np.dot(v, x)
-                        for v, c in zip(self.vectors_list, self.weights))
+            score = 0
+            for me, ml, c in zip(self.mistaken_examples,
+                                 self.mistaken_labels,
+                                 self.weights):
+                self.v_per_xs.append(self.v_per_xs[-1] + ml * self.kernel(me, x))
+                score += c * self.v_per_xs[-1]
         return score

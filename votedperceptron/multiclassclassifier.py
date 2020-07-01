@@ -83,13 +83,12 @@ class MulticlassClassifier:
             # continue
 
             eval_binary_classifier = self.binary_classifiers[eval_class]
-            s = 0
-            v_per_x = np.dot(eval_binary_classifier.vectors_list[0], x)
-            for i in range(len(eval_binary_classifier.vectors_list)):
-                v_per_x += eval_binary_classifier.mistaken_labels[i]*\
-                           eval_binary_classifier.kernel(eval_binary_classifier.mistaken_examples[i], x)
 
-                s += eval_binary_classifier.weights[i] * np.sign(v_per_x)
+            # after getting the class with max score, compute the voted prediction
+            s = 0
+            for v_per_x, c in zip(eval_binary_classifier.v_per_xs,
+                                  eval_binary_classifier.weights):
+                s += c * np.sign(v_per_x)
 
             prediction = np.sign(s)
             bool_ = prediction == 1
@@ -107,6 +106,7 @@ class MulticlassClassifier:
         full_predictions = []
         if process_count is not None and process_count > 1:
             # slit up input list for the workers
+            print("Splitting dataset for {} processes".format(process_count))
             split_input = np.array_split(test_list, process_count)
 
             with Pool(processes=process_count) as pool:
