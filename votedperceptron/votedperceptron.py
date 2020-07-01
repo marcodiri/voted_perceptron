@@ -58,6 +58,7 @@ class VotedPerceptron:
                 self.mistaken_examples.append(x.copy())
                 self.mistaken_labels.append(y_real)
                 self.weights.append(weight)
+                weight = 1  # reset weight
 
                 # update vector (move hyperplane)
                 new_vector = np.add(self.vectors_list[-1], np.multiply(y_real, x))
