@@ -57,10 +57,10 @@ class MulticlassClassifier:
             # train each binary classifier with a single process
             examples_splits = np.array_split(training_list, 10, axis=0)
             labels_splits = np.array_split(labels, 10, axis=0)
-            for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits)):
+            for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits), start=1):
                 for label, binary_classifier in self.binary_classifiers.items():
                     normalized_labels = normalize_labels(labels_split, label)
-                    binary_classifier.train(training_split, normalized_labels, num == len(examples_splits))
+                    binary_classifier.train(training_split, normalized_labels)
                     print("Finished training for class " + str(label))
 
                 # save trained MulticlassClassifier

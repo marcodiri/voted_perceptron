@@ -24,7 +24,7 @@ class VotedPerceptron:
         result = (gamma * np.dot(x1, x2) + coef0) ** self.expansion_degree
         return result
 
-    def train(self, training_list, labels, last_chunk=False):
+    def train(self, training_list, labels):
         # insert bias units of 1 into the first column
         # (hyperplane equation is VX + b with V being the coefficients vector,
         # X the vector of variables and b the bias)
@@ -36,6 +36,11 @@ class VotedPerceptron:
             init_example = np.zeros(training_list.shape[1], dtype=training_list.dtype)
             self.mistaken_examples.append(init_example)
             self.mistaken_labels.append(1)
+        else:
+            # if there are more examples the weight saved at
+            # the end of the last chunk is incorrect
+            # (it was only needed to save the intermediate epoch)
+            self.weights.pop()
 
         for x, y_real in zip(training_list, labels):
             # computing the prediction is the slow part.
@@ -57,10 +62,9 @@ class VotedPerceptron:
                 self.weights.append(self.current_weight)
                 self.current_weight = 1  # reset weight
 
-        if last_chunk:
-            # training complete
-            # save the last weight
-            self.weights.append(self.current_weight)
+        # training complete
+        # save the last weight
+        self.weights.append(self.current_weight)
 
     def get_score(self, x, method):
         # each VotedPerceptron instance represent a label
