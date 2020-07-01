@@ -82,14 +82,6 @@ def train(args):
                         for k, v in multicc.binary_classifiers.items()]
     tot_errors = sum(e for c, e in bc_vector_counts)
 
-    # save trained MulticlassClassifier
-    print('Saving MulticlassClassifier')
-    save_filepath = save_dir + '/{}{}data_{}epochs_{}degree_{}errors.pk' \
-        .format(str(REMOVE_CLASSES)+"removed_" if REMOVE_CLASSES else "",
-                mnist_fraction, epochs, expansion_degree, tot_errors)
-    with open(save_filepath, 'wb') as multicc_file:
-        pickle.dump(multicc, multicc_file)
-
     print("Per class error distribution:")
     print(bc_vector_counts)
     print("Total errors: {}".format(tot_errors))
