@@ -68,7 +68,7 @@ def train(args):
     # train instance of MulticlassClassifier
     print('Training')
     start = default_timer()
-    multicc.train(training_list, labels, process_count)
+    multicc.train(training_list, labels, epochs, process_count)
     end = default_timer()
     print("Training time: {} sec".format(end - start))
 

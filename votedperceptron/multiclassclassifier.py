@@ -20,7 +20,7 @@ class MulticlassClassifier:
         binary_classifier.train(training_list, training_labels)
         return binary_classifier
 
-    def train(self, training_list, labels, process_count):
+    def train(self, training_list, labels, epochs, process_count):
         def normalize_labels(labels, eval_label):
             """
             Normalize the labels list to contain only 1 or -1 based on the evaluating label
@@ -32,8 +32,8 @@ class MulticlassClassifier:
                             np.ones(labels.shape, np.int8),
                             -np.ones(labels.shape, np.int8))
 
-        examples_splits = np.array_split(training_list, 10, axis=0)
-        labels_splits = np.array_split(labels, 10, axis=0)
+        examples_splits = np.array_split(training_list, epochs*10, axis=0)
+        labels_splits = np.array_split(labels, epochs*10, axis=0)
 
         for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits), start=1):
             if process_count is not None and process_count > 1:
