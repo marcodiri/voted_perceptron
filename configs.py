@@ -3,6 +3,7 @@ import os
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + '/'
 DATA_DIR = ROOT_DIR + 'data/fashion'
 MODEL_SAVE_DIR = ROOT_DIR + 'save/'
+TRAINING_SAVE_DIR = ROOT_DIR + 'save/' + DATA_DIR.split('/')[-1]
 
 # classes to remove to speed things up
 REMOVE_CLASSES = 0

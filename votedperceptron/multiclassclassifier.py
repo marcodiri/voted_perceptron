@@ -1,18 +1,19 @@
-import pickle
-
 import numpy as np
 from multiprocessing import Pool
+import pickle
+from configs import *
 
 
 class MulticlassClassifier:
     """
     Manages the BinaryClassifiers
     """
-    def __init__(self, possible_labels, BinaryClassifier, expansion_degree):
+    def __init__(self, possible_labels, BinaryClassifier, args):
         self.possible_labels = possible_labels
+        self.args = args
 
         self.binary_classifiers = {y:
-                                   BinaryClassifier(expansion_degree)
+                                   BinaryClassifier(args.expansion_degree)
                                    for y in self.possible_labels}
 
     def managed_binary_classifier_train(self, binary_classifier, training_list,
@@ -20,7 +21,12 @@ class MulticlassClassifier:
         binary_classifier.train(training_list, training_labels)
         return binary_classifier
 
-    def train(self, training_list, labels, epochs, process_count):
+    def train(self, training_list, labels):
+        # create save directory
+        save_dir = MODEL_SAVE_DIR
+        save_dir += '/' + DATA_DIR.split('/')[-1]
+        touch_dir(save_dir)
+
         def normalize_labels(labels, eval_label):
             """
             Normalize the labels list to contain only 1 or -1 based on the evaluating label
@@ -32,13 +38,16 @@ class MulticlassClassifier:
                             np.ones(labels.shape, np.int8),
                             -np.ones(labels.shape, np.int8))
 
-        examples_splits = np.array_split(training_list, epochs*10, axis=0)
-        labels_splits = np.array_split(labels, epochs*10, axis=0)
+        # split examples and labels sets based so to have 10 intermediate divisions
+        examples_splits = np.array_split(training_list, self.args.epochs*10, axis=0)
+        labels_splits = np.array_split(labels, self.args.epochs*10, axis=0)
 
-        for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits), start=1):
-            if process_count is not None and process_count > 1:
+        for num, (training_split, labels_split) \
+                in enumerate(zip(examples_splits, labels_splits), start=1):
+            print("Starting epoch {}".format(num/10))
+            if self.args.process_count is not None and self.args.process_count > 1:
                 trained_bc_results = {}
-                with Pool(processes=process_count) as pool:
+                with Pool(processes=self.args.process_count) as pool:
                     # use the process pool to initiate training of the
                     # binary classifiers
                     for label, binary_classifier in self.binary_classifiers.items():
@@ -64,23 +73,35 @@ class MulticlassClassifier:
                     binary_classifier.train(training_split, normalized_labels)
                     print("Finished training for class " + str(label))
 
-            # save trained MulticlassClassifier
             bc_vector_counts = [(k, len(v.weights))
                                 for k, v in self.binary_classifiers.items()]
             tot_errors = sum(e for c, e in bc_vector_counts)
+
+            # save trained MulticlassClassifier
             print('Saving MulticlassClassifier')
-            save_filepath = '../save/fashion/{}-{}errors.pk' \
-                .format(num, tot_errors)
+            save_filepath = TRAINING_SAVE_DIR+'/{}{}data_{}epochs_{}degree_{}errors.pk'\
+                .format(str(REMOVE_CLASSES)+"removed_" if REMOVE_CLASSES else "",
+                        self.args.mnist_fraction, num/10,
+                        self.args.expansion_degree, tot_errors)
             with open(save_filepath, 'wb') as multicc_file:
                 pickle.dump(self, multicc_file)
 
-    def _predict_list(self, input_list, method):
+            # return number of prediction vectors making up each binary classifier
+            bc_vector_counts = [(k, len(v.weights))
+                                for k, v in self.binary_classifiers.items()]
+            tot_errors = sum(e for c, e in bc_vector_counts)
+
+            print("Per class error distribution:")
+            print(bc_vector_counts)
+            print("Total errors: {}".format(tot_errors))
+
+    def _predict_list(self, input_list):
         def predict_class(x):
-            # get scores for each class based on method
+            # get scores for each class based on score_method
             scores = {}
             # calculate every class score
             for label, binary_classifier in self.binary_classifiers.items():
-                scores[label] = binary_classifier.get_score(x, method)
+                scores[label] = binary_classifier.get_score(x, self.args.score_method)
 
             key_list = list(scores.keys())
             val_list = list(scores.values())
@@ -114,24 +135,24 @@ class MulticlassClassifier:
 
         return predictions, eval_classes
 
-    def predict(self, test_list, method, process_count):
+    def predict(self, test_list):
         # insert bias units of 1 into the first column
         test_list = np.insert(test_list, 0, 1, axis=1)
 
         full_eval_classes = []
         full_predictions = []
-        if process_count is not None and process_count > 1:
+        if self.args.process_count is not None and self.args.process_count > 1:
             # slit up input list for the workers
-            print("Splitting dataset for {} processes".format(process_count))
-            split_input = np.array_split(test_list, process_count)
+            print("Splitting dataset for {} processes".format(self.args.process_count))
+            split_input = np.array_split(test_list, self.args.process_count)
 
-            with Pool(processes=process_count) as pool:
+            with Pool(processes=self.args.process_count) as pool:
                 results = []
                 # append workers to list so partial results will be ordered
                 for input_part in split_input:
                     results.append(
                         pool.apply_async(func=self._predict_list,
-                                         args=(input_part, method)
+                                         args=(input_part, )
                                          )
                     )
 
@@ -143,7 +164,7 @@ class MulticlassClassifier:
                     print("Finished batch {}/{}".format(results.index(result)+1, len(split_input)))
         else:
             # a single process has to predict the whole set
-            pred, ev_class = self._predict_list(test_list, method)
+            pred, ev_class = self._predict_list(test_list)
             full_predictions.append(pred)
             full_eval_classes.append(ev_class)
 

@@ -49,64 +49,42 @@ def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels, epochs=1):
 
 
 def train(args):
-    process_count = args.process_count  # multiprocess the training
-    mnist_fraction = args.mnist_fraction
-    epochs = args.epochs
-    expansion_degree = args.expansion_degree
-
     # get data and labels for training
     print('Loading MNIST data')
     training_list, labels = _get_fraction_of_dataset(
-        mnist_fraction, 'train',
+        args.mnist_fraction, 'train',
         POSSIBLE_LABELS[:(-REMOVE_CLASSES if REMOVE_CLASSES else len(POSSIBLE_LABELS))],
-        epochs
+        args.epochs
     )
 
     # create instance of MulticlassClassifier
-    multicc = MulticlassClassifier(POSSIBLE_LABELS, VotedPerceptron, expansion_degree)
+    multicc = MulticlassClassifier(POSSIBLE_LABELS, VotedPerceptron, args)
 
     # train instance of MulticlassClassifier
     print('Training')
     start = default_timer()
-    multicc.train(training_list, labels, epochs, process_count)
+    multicc.train(training_list, labels)
     end = default_timer()
     print("Training time: {} sec".format(end - start))
 
-    # save results
-    save_dir = MODEL_SAVE_DIR
-    save_dir += '/' + DATA_DIR.split('/')[-1]
-    touch_dir(save_dir)
-
-    # return number of prediction vectors making up each binary classifier
-    bc_vector_counts = [(k, len(v.weights))
-                        for k, v in multicc.binary_classifiers.items()]
-    tot_errors = sum(e for c, e in bc_vector_counts)
-
-    print("Per class error distribution:")
-    print(bc_vector_counts)
-    print("Total errors: {}".format(tot_errors))
-
 
 def test(args):
-    mnist_fraction = args.mnist_fraction
-    score_method = args.score_method
-    process_count = args.process_count
-
     # open saved training file
     print("Loading training file")
     filepath = args.filepath
     if os.path.isfile(filepath):
         with open(filepath, 'rb') as multicc_file:
             multicc = pickle.load(multicc_file)
+            multicc.args = args
     else:
         print("File not found")
         return
 
-    test_list, labels = _get_fraction_of_dataset(mnist_fraction, 't10k', multicc.possible_labels)
+    test_list, labels = _get_fraction_of_dataset(args.mnist_fraction, 't10k', multicc.possible_labels)
 
-    print("Evaluating inputs with method '{}'".format(score_method))
+    print("Evaluating inputs with method '{}'".format(args.score_method))
     start = default_timer()
-    predictions, eval_classes = multicc.predict(test_list, score_method, process_count)
+    predictions, eval_classes = multicc.predict(test_list)
     end = default_timer()
     print("Evaluated {} inputs in {} sec".format(len(test_list), end-start))
 
