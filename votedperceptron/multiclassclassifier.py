@@ -32,46 +32,47 @@ class MulticlassClassifier:
                             np.ones(labels.shape, np.int8),
                             -np.ones(labels.shape, np.int8))
 
-        if process_count is not None and process_count > 1:
-            trained_bc_results = {}
-            with Pool(processes=process_count) as pool:
-                # use the process pool to initiate training of the
-                # binary classifiers
-                for label, binary_classifier in self.binary_classifiers.items():
-                    normalized_labels = normalize_labels(labels, label)
+        examples_splits = np.array_split(training_list, 10, axis=0)
+        labels_splits = np.array_split(labels, 10, axis=0)
 
-                    trained_bc_results[label] = (
-                        pool.apply_async(func=self.managed_binary_classifier_train,
-                                         args=(binary_classifier,
-                                               training_list, normalized_labels)
-                                         )
-                    )
+        for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits), start=1):
+            if process_count is not None and process_count > 1:
+                trained_bc_results = {}
+                with Pool(processes=process_count) as pool:
+                    # use the process pool to initiate training of the
+                    # binary classifiers
+                    for label, binary_classifier in self.binary_classifiers.items():
+                        normalized_labels = normalize_labels(labels_split, label)
 
-                # retrieve the trained binary classifiers back from the process pool and
-                # replace the untrained instances in self.binary_classifiers with
-                # their trained counterparts
-                for label in self.binary_classifiers.keys():
-                    self.binary_classifiers[label] = trained_bc_results[label].get()
-                    print("Finished training for class "+str(label))
-        else:
-            # train each binary classifier with a single process
-            examples_splits = np.array_split(training_list, 10, axis=0)
-            labels_splits = np.array_split(labels, 10, axis=0)
-            for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits), start=1):
+                        trained_bc_results[label] = (
+                            pool.apply_async(func=self.managed_binary_classifier_train,
+                                             args=(binary_classifier,
+                                                   training_split, normalized_labels)
+                                             )
+                        )
+
+                    # retrieve the trained binary classifiers back from the process pool and
+                    # replace the untrained instances in self.binary_classifiers with
+                    # their trained counterparts
+                    for label in self.binary_classifiers.keys():
+                        self.binary_classifiers[label] = trained_bc_results[label].get()
+                        print("Finished training for class "+str(label))
+            else:
+                # train each binary classifier with a single process
                 for label, binary_classifier in self.binary_classifiers.items():
                     normalized_labels = normalize_labels(labels_split, label)
                     binary_classifier.train(training_split, normalized_labels)
                     print("Finished training for class " + str(label))
 
-                # save trained MulticlassClassifier
-                bc_vector_counts = [(k, len(v.weights))
-                                    for k, v in self.binary_classifiers.items()]
-                tot_errors = sum(e for c, e in bc_vector_counts)
-                print('Saving MulticlassClassifier')
-                save_filepath = '../save/fashion/{}-{}errors.pk' \
-                    .format(num, tot_errors)
-                with open(save_filepath, 'wb') as multicc_file:
-                    pickle.dump(self, multicc_file)
+            # save trained MulticlassClassifier
+            bc_vector_counts = [(k, len(v.weights))
+                                for k, v in self.binary_classifiers.items()]
+            tot_errors = sum(e for c, e in bc_vector_counts)
+            print('Saving MulticlassClassifier')
+            save_filepath = '../save/fashion/{}-{}errors.pk' \
+                .format(num, tot_errors)
+            with open(save_filepath, 'wb') as multicc_file:
+                pickle.dump(self, multicc_file)
 
     def _predict_list(self, input_list, method):
         def predict_class(x):
