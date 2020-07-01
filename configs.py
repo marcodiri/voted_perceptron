@@ -5,8 +5,11 @@ DATA_DIR = ROOT_DIR + 'data/fashion'
 MODEL_SAVE_DIR = ROOT_DIR + 'save/'
 
 # classes to remove to speed things up
-REMOVE_CLASSES = 7
+REMOVE_CLASSES = 0
+
+# change this to match the domain size of your dataset labels
 # MNIST labels have values from 0 to 9
+# Note: using REMOVE_CLASSES doesn't require to change this
 POSSIBLE_LABELS = tuple(range(10))
 
 

@@ -64,7 +64,7 @@ class MulticlassClassifier:
             scores = {}
             # calculate every class score
             for label, binary_classifier in self.binary_classifiers.items():
-                scores[label] = binary_classifier.predict(x, method)
+                scores[label] = binary_classifier.get_score(x, method)
 
             key_list = list(scores.keys())
             val_list = list(scores.values())

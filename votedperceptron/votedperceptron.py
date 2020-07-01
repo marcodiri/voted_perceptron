@@ -40,7 +40,7 @@ class VotedPerceptron:
             init_vector = np.multiply(1, init_example)
             self.vectors_list.append(init_vector)
 
-        for current_index, (x, y_real) in enumerate(zip(training_list, labels)):
+        for x, y_real in zip(training_list, labels):
             # computing the prediction is the slow part.
             # It does O(n_examples * k^2) kernel calculations
             # with k number of mistakes made during the training
@@ -67,7 +67,7 @@ class VotedPerceptron:
         # save the last weight
         self.weights.append(weight)
 
-    def predict(self, x, method):
+    def get_score(self, x, method):
         # each VotedPerceptron instance represent a label
         # so compute the score
         score = None

@@ -12,48 +12,54 @@ import pickle
 LABELS = POSSIBLE_LABELS
 
 
-def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels):
+def _get_fraction_of_dataset(mnist_fraction, kind, possible_labels, epochs=1):
     global LABELS
     input_list, labels = mnist_reader.load_mnist(path=DATA_DIR, kind=kind)
 
-    labels_to_remove = list(set(LABELS) - set(possible_labels))
 
+    # take the fraction of the dataset
+    fraction = mnist_fraction - int(np.floor(mnist_fraction))
+    new_size = int(round((fraction if fraction else 1) * len(input_list)))
+    # normalize between 0 and 1
+    input_list = input_list[:new_size].astype(np.float32) / 255
+    labels = labels[:new_size]
+
+    # remove labels if necessary
     mod_input_list = []
     mod_labels = []
+    labels_to_remove = list(set(LABELS) - set(possible_labels))
     to_remove = [True if (y in labels_to_remove) else False for y in labels]
     for i, (x, y) in enumerate(zip(input_list, labels)):
         if not to_remove[i]:
             mod_input_list.append(x)
             mod_labels.append(y)
-    mod_input_list = np.array(mod_input_list)
-    mod_labels = np.array(mod_labels)
-    LABELS = possible_labels
 
-    repetitions = int(np.floor(mnist_fraction))
-    fraction = mnist_fraction - repetitions
-    # reduce data to fraction
-    new_size = int(round((fraction if fraction else 1) * len(mod_input_list)))
-    # normalize between 0 and 1
-    mod_input_list = mod_input_list[:new_size].astype(np.float32) / 255
-    mod_labels = mod_labels[:new_size]
+    # repeat the input_list epochs times (training only)
+    repetitions = int(np.floor(epochs))
+    tot_input_list = list(mod_input_list) * repetitions
+    tot_labels = list(mod_labels) * repetitions
+    fraction = epochs - repetitions
+    el_to_repeat = int(round(fraction * len(mod_input_list)))
+    input_to_repeat = mod_input_list[:el_to_repeat]
+    labels_to_repeat = mod_labels[:el_to_repeat]
+    tot_input_list += list(input_to_repeat)
+    tot_labels += list(labels_to_repeat)
 
-    # if mnist_fraction > 1 repeat part of the input_list to simulate epochs (training only)
-    mod_input_list = np.array(list(mod_input_list) * (repetitions if repetitions > 0 else 1))
-    mod_labels = np.array(list(mod_labels) * (repetitions if repetitions > 0 else 1))
-
-    return mod_input_list, mod_labels
+    return np.array(tot_input_list), np.array(tot_labels)
 
 
 def train(args):
     process_count = args.process_count  # multiprocess the training
     mnist_fraction = args.mnist_fraction
+    epochs = args.epochs
     expansion_degree = args.expansion_degree
 
     # get data and labels for training
     print('Loading MNIST data')
     training_list, labels = _get_fraction_of_dataset(
         mnist_fraction, 'train',
-        POSSIBLE_LABELS[:(-REMOVE_CLASSES if REMOVE_CLASSES else len(POSSIBLE_LABELS))]
+        POSSIBLE_LABELS[:(-REMOVE_CLASSES if REMOVE_CLASSES else len(POSSIBLE_LABELS))],
+        epochs
     )
 
     # create instance of MulticlassClassifier
@@ -78,13 +84,15 @@ def train(args):
 
     # save trained MulticlassClassifier
     print('Saving MulticlassClassifier')
-    save_filepath = save_dir + '/{}{}fraction_{}degree_{}errors.pk' \
+    save_filepath = save_dir + '/{}{}data_{}epochs_{}degree_{}errors.pk' \
         .format(str(REMOVE_CLASSES)+"removed_" if REMOVE_CLASSES else "",
-                mnist_fraction, expansion_degree, tot_errors)
+                mnist_fraction, epochs, expansion_degree, tot_errors)
     with open(save_filepath, 'wb') as multicc_file:
         pickle.dump(multicc, multicc_file)
 
-    print(tot_errors)
+    print("Per class error distribution:")
+    print(bc_vector_counts)
+    print("Total errors: {}".format(tot_errors))
 
 
 def test(args):
@@ -139,16 +147,22 @@ def main():
     parser_train = subparsers.add_parser('train',
                                          help='Create and train a MulticlassClassifier')
     parser_train.add_argument('-mf', '--mnist_fraction',
-                              help='Fraction of MNIST data to use (range 0 to 99 with pass 0.1), '
-                                   'if >1 the remaining fraction of examples will be repeated.',
+                              help='Fraction of MNIST data to use (range 0 to 1 with pass 0.1)',
                               type=float,
-                              choices=np.arange(0, 99.0001, .0001),
-                              metavar='{0, .0001, ..., .1, ..., 1, 1.1, ..., 99}',
+                              choices=np.arange(0, 1.0001, .0001),
+                              metavar='{0, .0001, ..., .1, ..., 1}',
+                              default=1)
+    parser_train.add_argument('-e', '--epochs',
+                              help='number of times the training set will be repeated.'
+                                   'If a decimal repeat the remaining fraction.',
+                              type=float,
+                              choices=np.arange(0, 30.1, .1),
+                              metavar='{0, .1, ..., 1, 1.1, ..., 30}',
                               default=1)
     parser_train.add_argument('-exp', '--expansion_degree',
                               help='Degree of the kernel function.',
                               type=int,
-                              choices=np.arange(0, 6),
+                              choices=np.arange(0, 11),
                               default=1)
     parser_train.set_defaults(func=train)
 
