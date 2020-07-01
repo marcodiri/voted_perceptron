@@ -60,7 +60,7 @@ class MulticlassClassifier:
             for num, (training_split, labels_split) in enumerate(zip(examples_splits, labels_splits)):
                 for label, binary_classifier in self.binary_classifiers.items():
                     normalized_labels = normalize_labels(labels_split, label)
-                    binary_classifier.train(training_split, normalized_labels)
+                    binary_classifier.train(training_split, normalized_labels, num == len(examples_splits))
                     print("Finished training for class " + str(label))
 
                 # save trained MulticlassClassifier

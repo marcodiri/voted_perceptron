@@ -24,7 +24,7 @@ class VotedPerceptron:
         result = (gamma * np.dot(x1, x2) + coef0) ** self.expansion_degree
         return result
 
-    def train(self, training_list, labels):
+    def train(self, training_list, labels, last_chunk=False):
         # insert bias units of 1 into the first column
         # (hyperplane equation is VX + b with V being the coefficients vector,
         # X the vector of variables and b the bias)
@@ -32,7 +32,7 @@ class VotedPerceptron:
 
         # initialize structures
         if not self.mistaken_examples:
-            self.weight = 0
+            self.current_weight = 0
             init_example = np.zeros(training_list.shape[1], dtype=training_list.dtype)
             self.mistaken_examples.append(init_example)
             self.mistaken_labels.append(1)
@@ -49,17 +49,18 @@ class VotedPerceptron:
             y_predicted = copysign(1, prediction)
 
             if y_predicted == y_real:  # correct prediction
-                self.weight += 1
+                self.current_weight += 1
             else:  # wrong prediction
                 # save mistaken example and label and weight
                 self.mistaken_examples.append(x.copy())
                 self.mistaken_labels.append(y_real)
-                self.weights.append(self.weight)
-                self.weight = 1  # reset weight
+                self.weights.append(self.current_weight)
+                self.current_weight = 1  # reset weight
 
-        # training complete
-        # save the last weight
-        self.weights.append(self.weight)
+        if last_chunk:
+            # training complete
+            # save the last weight
+            self.weights.append(self.current_weight)
 
     def get_score(self, x, method):
         # each VotedPerceptron instance represent a label
