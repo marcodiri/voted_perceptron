@@ -23,7 +23,10 @@ described in the publication below:
 Usage
 ---
 You can specify the dataset location in `configs.py` as well as 
-reducing the dataset classes.
+other self explanatory settings.
+In the `data` folder are included [MNIST](http://yann.lecun.com/exdb/mnist/)
+and the more challenging [Zalando Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist)
+datasets.
 
 Command line parameters:
 
@@ -40,18 +43,20 @@ Command line parameters:
 You can train a MulticlassClassifier with the following parameters:
 
     -e, --epochs [1 to 30 with pass 0.1]: number of times the training set will be repeated.
-        If a decimal repeat the remaining fraction.
+        If a decimal repeat the remaining fraction of the dataset.
+        Note: the epochs preceding the set one will be saved automatically with pass 0.1
+        (e.g. if -e 2 epochs 0.1, 0.2, ..., 1, 1.1, ..., 2 will be saved).
         default to 1
     -exp, --expansion_degree: the degree of the kernel expansion
         default to 1
 
-A training file named after the used parameters will be saved in the folder 
+Training files named after the used parameters will be saved in the folder 
 specified in `config.py` (default to `./save`).
 
-Example to train on 50% of the dataset for 0.1 epochs with an expansion degree of 2,
+Example to train on 50% of the dataset for 0.8 epochs with an expansion degree of 2,
 with 10 running processes:
 ~~~
-python benchmark/runner.py -p 10 -mf .5 train -e .1 -exp 2
+python benchmark/runner.py -p 10 -mf .5 train -e .8 -exp 2
 ~~~
 You can test a saved training file with the following parameters:
 
@@ -63,8 +68,10 @@ You can test a saved training file with the following parameters:
 Example to test a training file on 50% of the dataset with score method average,
 with 10 running processes:
 ~~~
-python benchmark/runner.py -p 10 -mf .5 test -m avg -f "save/fashion/filename.pk"
+python benchmark/runner.py -p 10 -mf .5 test -m avg -f "../save/fashion/filename.pk"
 ~~~
+Information about test and training will be logged in a file
+(by default in `logs/events.log`).
 
 Credits
 ---
