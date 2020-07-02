@@ -71,24 +71,40 @@ class VotedPerceptron:
         # so compute the score
         score = None
         self.v_per_xs = [0]
-        if method == 'last':
+        if method[0] == 'last':
             for me, ml, c in zip(self.mistaken_examples,
                                  self.mistaken_labels,
                                  self.weights):
                 self.v_per_xs.append(self.v_per_xs[-1] + ml * self.kernel(me, x))
             score = self.v_per_xs[-1]
-        elif method == 'vote':
+        elif method[0] == 'vote':
             score = 0
             for me, ml, c in zip(self.mistaken_examples,
                                  self.mistaken_labels,
                                  self.weights):
                 self.v_per_xs.append(self.v_per_xs[-1] + ml * self.kernel(me, x))
                 score += c * np.sign(self.v_per_xs[-1])
-        elif method == 'avg':
+        elif method[0] == 'avg':
             score = 0
             for me, ml, c in zip(self.mistaken_examples,
                                  self.mistaken_labels,
                                  self.weights):
+                self.v_per_xs.append(self.v_per_xs[-1] + ml * self.kernel(me, x))
+                score += c * self.v_per_xs[-1]
+        elif method[0] == 'rnd':
+            sum_ = 0
+            i = 0
+            for w in self.weights:
+                if sum_ + w <= method[1]:
+                    sum_ += w
+                    i += 1
+                else:
+                    break
+
+            score = 0
+            for me, ml, c in zip(self.mistaken_examples[:i],
+                                 self.mistaken_labels[:i],
+                                 self.weights[:i]):
                 self.v_per_xs.append(self.v_per_xs[-1] + ml * self.kernel(me, x))
                 score += c * self.v_per_xs[-1]
         return score

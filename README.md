@@ -55,7 +55,7 @@ python benchmark/runner.py -p 10 -mf .5 train -e .1 -exp 2
 ~~~
 You can test a saved training file with the following parameters:
 
-    -m, --score_method ['last', 'vote', 'avg']: the method with which the 
+    -m, --score_method ['last', 'vote', 'avg', 'rnd']: the method with which the 
         MulticlassClassifier will assign scores to classes.
         default to 'last'
     -f, --filepath: the path to a saved training file

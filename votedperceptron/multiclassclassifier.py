@@ -1,6 +1,7 @@
 import numpy as np
 from multiprocessing import Pool
 import pickle
+import random
 from configs import *
 from timeit import default_timer
 
@@ -108,7 +109,7 @@ class MulticlassClassifier:
             scores = {}
             # calculate every class score
             for label, binary_classifier in self.binary_classifiers.items():
-                scores[label] = binary_classifier.get_score(x, self.args.score_method)
+                scores[label] = binary_classifier.get_score(x, (self.args.score_method, self.r))
 
             key_list = list(scores.keys())
             val_list = list(scores.values())
@@ -145,6 +146,14 @@ class MulticlassClassifier:
     def predict(self, test_list):
         # insert bias units of 1 into the first column
         test_list = np.insert(test_list, 0, 1, axis=1)
+
+        # if method == random compute r to pass to binary classifiers
+        if self.args.score_method == 'rnd':
+            # t is the number of processed examples, equal for every class
+            t = sum(w for w in self.binary_classifiers[0].weights)
+            self.r = random.randint(0, t)
+        else:
+            self.r = None
 
         full_eval_classes = []
         full_predictions = []

@@ -150,7 +150,7 @@ def main():
                                         help='Test trained MulticlassClassifier')
     parser_test.add_argument('-m', '--score_method',
                              help='Method to calculate classes score.',
-                             choices=['last', 'vote', 'avg'],
+                             choices=['last', 'vote', 'avg', 'rnd'],
                              default='last')
     parser_test.add_argument('-f', '--filepath',
                              help='Training file to use to predict inputs.',
