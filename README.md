@@ -77,8 +77,8 @@ Information about test and training will be logged in a file
 
 Credits
 ---
-Training, class scores, Prediction and multiprocess testing code 
-implemented by Marco Di Rienzo for Artificial Intelligence 
-class project at University of Florence.
+Training, class scores calculation, Prediction, multiprocess testing code,
+incremental epoch saving and more implemented by Marco Di Rienzo for 
+Artificial Intelligence class project at University of Florence.
 
-Project structure and class diagram inspired by [bmgee - votedperceptron](https://pypi.org/project/votedperceptron/).
+Class diagram inspired by [bmgee - votedperceptron](https://pypi.org/project/votedperceptron/).
