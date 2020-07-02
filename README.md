@@ -22,6 +22,8 @@ described in the publication below:
 
 Usage
 ---
+You'll probably have to install some dependencies to run the script.
+
 You can specify the dataset location in `configs.py` as well as 
 other self explanatory settings.
 In the `data` folder are included [MNIST](http://yann.lecun.com/exdb/mnist/)
